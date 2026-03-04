@@ -8,13 +8,10 @@ if (!baseUrl) {
 
 type Json = Record<string, unknown>;
 
-export async function apiPost<TResponse>(
-  path: string,
-  body: Json,
-  opts?: { auth?: boolean }
-): Promise<TResponse> {
+function makeHeaders(opts?: { auth?: boolean; headers?: Record<string, string> }) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...(opts?.headers ?? {}),
   };
 
   if (opts?.auth) {
@@ -22,16 +19,42 @@ export async function apiPost<TResponse>(
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${baseUrl}${path}`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  });
+  return headers;
+}
 
+async function parseJsonOrThrow<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`HTTP ${res.status}: ${text}`);
   }
 
-  return (await res.json()) as TResponse;
+  // Some endpoints may return empty body; handle gracefully.
+  const text = await res.text();
+  return (text ? (JSON.parse(text) as T) : (undefined as T));
+}
+
+export async function apiGet<TResponse>(
+  path: string,
+  opts?: { auth?: boolean; headers?: Record<string, string> }
+): Promise<TResponse> {
+  const res = await fetch(`${baseUrl}${path}`, {
+    method: "GET",
+    headers: makeHeaders(opts),
+  });
+
+  return await parseJsonOrThrow<TResponse>(res);
+}
+
+export async function apiPost<TResponse>(
+  path: string,
+  body: Json,
+  opts?: { auth?: boolean; headers?: Record<string, string> }
+): Promise<TResponse> {
+  const res = await fetch(`${baseUrl}${path}`, {
+    method: "POST",
+    headers: makeHeaders(opts),
+    body: JSON.stringify(body),
+  });
+
+  return await parseJsonOrThrow<TResponse>(res);
 }
