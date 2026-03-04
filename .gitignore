@@ -14,3 +14,21 @@ Thumbs.db
 # Env
 .env
 .env.*
+
+# Node / Next
+node_modules/
+.next/
+out/
+
+# .NET build artifacts
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# NuGet
+**/packages/
+
+# Optional: local DB / tooling
+*.mdf
+*.ldf
